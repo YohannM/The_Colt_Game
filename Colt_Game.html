@@ -22,7 +22,7 @@
             default: 'arcade',
             arcade: {
                 gravity: { y: 800 },
-                debug: true
+                debug: false
             }
         },
         scene: {
@@ -37,7 +37,7 @@
     var game;
     var lastFired = 0;
     var vitesse_de_course = 350;
-    var vitesse_de_saut = 600;
+    var vitesse_de_saut = 900;
     var score = 0;
     var nombre_ennemies = 3;
 
@@ -78,9 +78,6 @@
 
     function create ()
     {
-        
-        center_x = window.innerWidth * window.devicePixelRatio / 2;
-        center_y = window.innerHeight * window.devicePixelRatio / 2;
 
         this.bg = this.add.image(window.innerWidth / 2, window.innerHeight / 2, 'western');
         this.bg.setDisplaySize(window.innerWidth, window.innerHeight);
