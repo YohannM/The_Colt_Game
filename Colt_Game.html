@@ -39,6 +39,7 @@
     var vitesse_de_course = 350;
     var vitesse_de_saut = 600;
     var score = 0;
+    var nombre_ennemies = 3;
 
     game = new Phaser.Game(config);
 
@@ -47,6 +48,7 @@
         this.load.image('western', 'assets/western.jpeg');
         this.load.image('ground', 'assets/platform.png');
         this.load.image('bomb', 'assets/bomb.png');
+        this.load.image('replay', 'assets/replay.png');
         
         this.load.path = 'assets/girl/';
 
@@ -69,13 +71,8 @@
 
         this.load.path = 'assets/enemies/Animations';
 
-        for (let i = 1; i < 6; i++)
-            for (let j = 0; j < 4; j++)
-                this.load.image("idle_" + i + "_" + j, "/e" + i +"/Armature_Idle_" + j + ".png");
-
-        for (let i = 1; i < 6; i++)
-            for (let j = 0; j < 4; j++)
-                this.load.image("flying_" + i + "_" + j, "/e" + i +"/Armature_Flying_" + j + ".png");
+        for (let j = 0; j < 4; j++)
+            this.load.image("flying_1_" + j, "/e1/Armature_Idle_" + j + ".png");
 
     }
 
@@ -152,7 +149,7 @@
         frames_shoot = []
         frames_idle = []
 
-        frames_idle_enm = [[], [], [], [], []];
+        frames_idle_enm = [];
 
 
         for (let i = 1; i < 11; i++) {
@@ -175,18 +172,17 @@
         for (let i = 1; i < 11; i++)
             frames_idle.push({key : "idle" + i});
 
-        for (let i = 0; i < 5; i++)
-            for (let j = 0; j < 5; j++)
-                frames_idle_enm[j].push({key : "idle_" + i + "_" + j});
+        for (let i = 0; i < 4; i++)
+            frames_idle_enm.push({key : "flying_1_" + i});
 
-        for (let j = 0; j < 5; j++) {
-            this.anims.create({
-                key: "idle_enm_" + j,
-                frames: frames_idle_enm[j],
-                frameRate: 15,
-                repeat: -1
-            });
-        }
+        
+        this.anims.create({
+            key: "idle_enm_1",
+            frames: frames_idle_enm,
+            frameRate: 2,
+            repeat: -1
+        });
+        
                 
 
 
@@ -238,8 +234,8 @@
 
         ennemies = this.physics.add.group({
             key: 'flying_1_0',
-            repeat: 3,
-            setXY: { x: window.innerWidth/5, y: 0, stepX: window.innerWidth/5},
+            repeat: nombre_ennemies - 1,
+            setXY: { x: window.innerWidth/(nombre_ennemies + 1), y: 0, stepX: window.innerWidth/(nombre_ennemies + 1)},
             setScale: { x: 0.2, y: 0.2}
         });
 
@@ -248,6 +244,7 @@
             child.setCollideWorldBounds(true);
             child.setVelocity(Phaser.Math.Between(-200, 200), 20);
             child.allowGravity = false;
+            child.play('idle_enm_1');
         });
 
         scoreText = this.add.text(16, 16, 'score: 0', { fontSize: '32px', fill: '#000' });
@@ -316,10 +313,6 @@
                     player.flipX = true;
                 } 
 
-                /*if(config.width / 2 < Math.abs(player.x) && player.body.velocityX > 0) {
-                        player.setVelocityX(0);
-                }*/
-
             }
         }
 
@@ -334,22 +327,42 @@
         scoreText.setText('Score: ' + score);
 
         if (ennemies.countActive(true) === 0) {
-            ennemies.children.iterate(function (child) {
-
-                child.enableBody(true, child.x, 0, true, true);
-                child.setVelocity(Phaser.Math.Between(-200, 200), 20);
-
+            nombre_ennemies += 1;
+            ennemies = this.physics.add.group({
+                key: 'flying_1_0',
+                repeat: nombre_ennemies - 1,
+                setXY: { x: window.innerWidth/(nombre_ennemies + 1), y: 0, stepX: window.innerWidth/(nombre_ennemies + 1)},
+                setScale: { x: 0.2, y: 0.2}
             });
+
+            ennemies.children.iterate((child) => {
+                child.body.setBounce(1);
+                child.setCollideWorldBounds(true);
+                child.setVelocity(Phaser.Math.Between(-200, 200), 20);
+                child.allowGravity = false;
+            });
+
+            this.physics.add.collider(ennemies, platforms);
+            this.physics.add.collider(bullets, ennemies);
+
+            this.physics.add.overlap(bullets, ennemies, killEnnemies, null, this);
+            this.physics.add.overlap(player, ennemies, gameover, null, this);
         }
     }
 
     function gameover(player, ennemy) {
 
+        let gameOverText = this.add.text(window.innerWidth/2, window.innerHeight/2, 'GAME OVER', { font: "bold 128px Arial", fill: '#f00'});
+
+        gameOverText.setOrigin(0.5, 0.5);
+
         this.physics.pause();
 
         player.setTint(0xff0000);
 
-        player.anims.play('turn');
+        this.rePlay = this.add.sprite(window.innerWidth/2, 3 * window.innerHeight/4, 'replay').setScale(0.3);
+        this.rePlay.setInteractive();
+        this.rePlay.on('pointerdown', () => this.scene.restart() );
     }
 
 </script>
