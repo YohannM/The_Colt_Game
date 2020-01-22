@@ -34,8 +34,10 @@
 
     var player;
     var platforms;
+    var game;
+    var lastFired = 0;
 
-    var game = new Phaser.Game(config);
+    game = new Phaser.Game(config);
 
     function preload ()
     {
@@ -67,11 +69,60 @@
 
     function create ()
     {
+        
         center_x = window.innerWidth * window.devicePixelRatio / 2;
         center_y = window.innerHeight * window.devicePixelRatio / 2;
 
-
         this.add.image(center_x, center_y, 'sky').setScale(12);
+
+        player = this.physics.add.sprite(100, 300, 'girl').setScale(0.3);
+
+        var Bullet = new Phaser.Class({
+
+            Extends: Phaser.GameObjects.Image,
+
+            initialize:
+
+            function Bullet (scene)
+            {
+                Phaser.GameObjects.Image.call(this, scene, 0, 0, 'bomb');
+
+                this.speed = Phaser.Math.GetSpeed(900, 1);
+            },
+
+            fire: function (x, y)
+            {
+                this.setPosition(x + 20, y);
+
+                this.setActive(true);
+                this.setVisible(true);
+
+                this.sense = player.flipX;
+            },
+
+            update: function (time, delta)
+            {
+                if (this.sense) {
+                    this.x -= this.speed * delta;
+                } else {
+                    this.x += this.speed * delta;
+                }
+                
+
+                if (this.x < +50)
+                {
+                    this.setActive(false);
+                    this.setVisible(false);
+                }
+            }
+
+        });
+
+        bullets = this.add.group({
+        classType: Bullet,
+        maxSize: -1,
+        runChildUpdate: true
+        });
 
         platforms = this.physics.add.staticGroup();
 
@@ -100,6 +151,9 @@
 
         for (let i = 1; i < 4; i++) 
             frames_shoot.push({key : "shoot" + i});
+
+        for (let i = 0; i < 3; i++) 
+            console.log(frames_shoot[i]);
 
         for (let i = 1; i < 11; i++)
             frames_idle.push({key : "idle" + i});
@@ -135,11 +189,9 @@
         this.anims.create({
             key: 'shoot',
             frames: frames_shoot ,
-            frameRate: 15,
-            repeat: -1
+            frameRate: 9,
+            repeat: 0
         });
-
-        player = this.physics.add.sprite(100, 300, 'girl').setScale(0.3);
 
         player.setBounce(0);
         player.setCollideWorldBounds(true);
@@ -150,53 +202,66 @@
 
         cursors = this.input.keyboard.createCursorKeys();
 
+        key1 = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A);
+
     }
 
-    function update ()
+    function update (time)
     {
-        /*if(window.innerWidth * window.devicePixelRatio / 2 < player.x)
-                player.setVelocityX(0);*/
 
-        if (cursors.up.isDown && player.body.touching.down) {
-            player.setVelocityY(-600);
-            player.play('jump', true);  
+        if (!(player.anims.currentAnim.key == 'shoot' && player.anims.isPlaying))
+            {
 
-        } else if (cursors.left.isDown && player.body.touching.down) {
-            
-            player.setVelocityX(-160);
-            player.play('run', true);
+            if (Phaser.Input.Keyboard.JustDown(key1) && time > lastFired) {
+                var bullet = bullets.get();
 
-        } else if (cursors.right.isDown && player.body.touching.down) {
-            if(window.innerWidth * window.devicePixelRatio / 2 > player.x)
-                player.setVelocityX(160);
-            if (player.body.velocityX < 0) {
-                player.scaleX *= -1;
+                if (bullet){
+                    bullet.fire(player.x, player.y);
+                    lastFired = time + 50;
+                }
+
+                player.play('shoot', true);
+                
+            } else {
+
+                if (cursors.up.isDown && player.body.touching.down) {
+                    player.setVelocityY(-600);
+                    player.play('jump', true);  
+
+                } else if (cursors.left.isDown && player.body.touching.down) {
+                    
+                    player.setVelocityX(-160);
+                    player.play('run', true);
+
+                } else if (cursors.right.isDown && player.body.touching.down) {
+                    if(window.innerWidth * window.devicePixelRatio / 2 > player.x)
+                        player.setVelocityX(160);
+                    if (player.body.velocityX < 0) {
+                        player.scaleX *= -1;
+                    }
+                    player.play('run', true);
+
+                } else if (cursors.down.isDown && player.body.touching.down) {
+                    player.play('slide', true);
+
+                } else if (player.body.touching.down) {
+                    player.setVelocityX(0);
+                    player.play('idle', true);
+                }
+
+                if (player.body.velocity.x > 0 && player.flipX) {
+                    player.flipX = false;
+                } 
+                if (player.body.velocity.x < 0 && !player.flipX) {
+                    player.flipX = true;
+                } 
+
+                if(config.width / 2 < Math.abs(player.x) && player.body.velocityX > 0) {
+                        player.setVelocityX(0);
+                }
+
             }
-            player.play('run', true);
-
-        } else if (cursors.down.isDown && player.body.touching.down) {
-            player.play('slide', true);
-
-        } else if (player.body.touching.down) {
-            player.setVelocityX(0);
-            player.play('idle', true);
         }
-
-        if (player.body.velocity.x > 0 && player.flipX) {
-            player.flipX = false;
-            /*var offset = player.body.offset.x;
-            player.scaleX *= -1;
-            player.body.setOffset(offset, offset);
-            console.log(offset)*/
-        } 
-        if (player.body.velocity.x < 0 && !player.flipX) {
-            player.flipX = true;
-            /*var offset = player.body.offset.x;
-            player.scaleX *= -1;
-            player.body.setOffset(offset, offset);*/
-        } 
-
-        
 
     }
 
