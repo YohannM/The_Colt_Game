@@ -16,8 +16,8 @@
 
     var config = {
         type: Phaser.AUTO,
-        width : 800,
-        height: 600,
+        width : window.innerWidth,
+        height: window.innerHeight,
         physics: {
             default: 'arcade',
             arcade: {
@@ -36,14 +36,16 @@
     var platforms;
     var game;
     var lastFired = 0;
+    var vitesse_de_course = 350;
+    var vitesse_de_saut = 600;
+    var score = 0;
 
     game = new Phaser.Game(config);
 
     function preload ()
     {
-        this.load.image('sky', 'assets/sky_b.png');
+        this.load.image('western', 'assets/western.jpeg');
         this.load.image('ground', 'assets/platform.png');
-        this.load.image('star', 'assets/star.png');
         this.load.image('bomb', 'assets/bomb.png');
         
         this.load.path = 'assets/girl/';
@@ -65,6 +67,16 @@
 
         this.load.image('girl', 'girl.png');
 
+        this.load.path = 'assets/enemies/Animations';
+
+        for (let i = 1; i < 6; i++)
+            for (let j = 0; j < 4; j++)
+                this.load.image("idle_" + i + "_" + j, "/e" + i +"/Armature_Idle_" + j + ".png");
+
+        for (let i = 1; i < 6; i++)
+            for (let j = 0; j < 4; j++)
+                this.load.image("flying_" + i + "_" + j, "/e" + i +"/Armature_Flying_" + j + ".png");
+
     }
 
     function create ()
@@ -73,7 +85,8 @@
         center_x = window.innerWidth * window.devicePixelRatio / 2;
         center_y = window.innerHeight * window.devicePixelRatio / 2;
 
-        this.add.image(center_x, center_y, 'sky').setScale(12);
+        this.bg = this.add.image(window.innerWidth / 2, window.innerHeight / 2, 'western');
+        this.bg.setDisplaySize(window.innerWidth, window.innerHeight);
 
         player = this.physics.add.sprite(100, 300, 'girl').setScale(0.3);
 
@@ -118,21 +131,24 @@
 
         });
 
-        bullets = this.add.group({
+        bullets = this.physics.add.group({
         classType: Bullet,
         maxSize: -1,
-        runChildUpdate: true
+        runChildUpdate: true,
+        allowGravity: false
         });
 
         platforms = this.physics.add.staticGroup();
 
-        platforms.create(400, 568, 'ground').setScale(3).refreshBody();
+        platforms.create(500, 800, 'ground').setScale(6).refreshBody();
 
         frames_run = []
         frames_jump = []
         frames_slide = []
         frames_shoot = []
         frames_idle = []
+
+        frames_idle_enm = [[], [], [], [], []];
 
 
         for (let i = 1; i < 11; i++) {
@@ -152,11 +168,23 @@
         for (let i = 1; i < 4; i++) 
             frames_shoot.push({key : "shoot" + i});
 
-        for (let i = 0; i < 3; i++) 
-            console.log(frames_shoot[i]);
-
         for (let i = 1; i < 11; i++)
             frames_idle.push({key : "idle" + i});
+
+        for (let i = 0; i < 5; i++)
+            for (let j = 0; j < 5; j++)
+                frames_idle_enm[j].push({key : "idle_" + i + "_" + j});
+
+        for (let j = 0; j < 5; j++) {
+            this.anims.create({
+                key: "idle_enm_" + j,
+                frames: frames_idle_enm[j],
+                frameRate: 15,
+                repeat: -1
+            });
+        }
+                
+
 
         this.anims.create({
             key: 'idle',
@@ -198,11 +226,33 @@
 
         this.physics.add.collider(player, platforms);
 
-        player.play('idle')
+        player.play('idle');
 
         cursors = this.input.keyboard.createCursorKeys();
 
-        key1 = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A);
+        shoot_key = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A);
+
+        ennemies = this.physics.add.group({
+            key: 'flying_1_0',
+            repeat: 3,
+            setXY: { x: window.innerWidth/5, y: 0, stepX: window.innerWidth/5},
+            setScale: { x: 0.2, y: 0.2}
+        });
+
+        ennemies.children.iterate((child) => {
+            child.body.setBounce(1);
+            child.setCollideWorldBounds(true);
+            child.setVelocity(Phaser.Math.Between(-200, 200), 20);
+            child.allowGravity = false;
+        });
+
+        scoreText = this.add.text(16, 16, 'score: 0', { fontSize: '32px', fill: '#000' });
+
+        this.physics.add.collider(ennemies, platforms);
+        this.physics.add.collider(bullets, ennemies);
+
+        this.physics.add.overlap(bullets, ennemies, killEnnemies, null, this);
+        this.physics.add.overlap(player, ennemies, gameover, null, this);
 
     }
 
@@ -212,30 +262,30 @@
         if (!(player.anims.currentAnim.key == 'shoot' && player.anims.isPlaying))
             {
 
-            if (Phaser.Input.Keyboard.JustDown(key1) && time > lastFired) {
+            if (Phaser.Input.Keyboard.JustDown(shoot_key) && time > lastFired) {
                 var bullet = bullets.get();
 
                 if (bullet){
                     bullet.fire(player.x, player.y);
                     lastFired = time + 50;
                 }
-
+                player.setVelocityX(0);
                 player.play('shoot', true);
                 
             } else {
 
                 if (cursors.up.isDown && player.body.touching.down) {
-                    player.setVelocityY(-600);
+                    player.setVelocityY(-1 * vitesse_de_saut);
                     player.play('jump', true);  
 
                 } else if (cursors.left.isDown && player.body.touching.down) {
                     
-                    player.setVelocityX(-160);
+                    player.setVelocityX(-1 * vitesse_de_course);
                     player.play('run', true);
 
                 } else if (cursors.right.isDown && player.body.touching.down) {
-                    if(window.innerWidth * window.devicePixelRatio / 2 > player.x)
-                        player.setVelocityX(160);
+                    /*if(window.innerWidth * window.devicePixelRatio / 2 > player.x)*/
+                        player.setVelocityX(vitesse_de_course);
                     if (player.body.velocityX < 0) {
                         player.scaleX *= -1;
                     }
@@ -256,13 +306,40 @@
                     player.flipX = true;
                 } 
 
-                if(config.width / 2 < Math.abs(player.x) && player.body.velocityX > 0) {
+                /*if(config.width / 2 < Math.abs(player.x) && player.body.velocityX > 0) {
                         player.setVelocityX(0);
-                }
+                }*/
 
             }
         }
 
+    }
+
+
+    function killEnnemies(bullet, ennemy)
+    {
+        ennemy.disableBody(true, true);
+
+        score += 10;
+        scoreText.setText('Score: ' + score);
+
+        if (ennemies.countActive(true) === 0) {
+            ennemies.children.iterate(function (child) {
+
+                child.enableBody(true, child.x, 0, true, true);
+                child.setVelocity(Phaser.Math.Between(-200, 200), 20);
+
+            });
+        }
+    }
+
+    function gameover(player, ennemy) {
+
+        this.physics.pause();
+
+        player.setTint(0xff0000);
+
+        player.anims.play('turn');
     }
 
 </script>
