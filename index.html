@@ -40,6 +40,10 @@
     var vitesse_de_saut = 900;
     var score = 0;
     var nombre_ennemies = 3;
+    var up;
+    var left;
+    var right;
+    var shoot;
 
     game = new Phaser.Game(config);
 
@@ -78,14 +82,13 @@
 
     function create ()
     {
-        /*if (!game.device.desktop){ 
-            this.buttonjump = this.add.sprite(window.innerWidth/2, 3 * window.innerHeight/4, 'replay').setScale(0.3);
-            this.buttonjump.setInteractive();
-            buttonjump = game.add.button(600, 500, 'buttonjump', null, this, 0, 1, 0, 1);
-        }*/
 
         this.bg = this.add.image(window.innerWidth / 2, window.innerHeight / 2, 'western');
         this.bg.setDisplaySize(window.innerWidth, window.innerHeight);
+
+        let coltText = this.add.text(window.innerWidth/2, window.innerHeight/15, 'Le jeu des Colt', { font: "bold 54px Arial", fill: '#fff'});
+
+        coltText.setOrigin(0.5, 0.5);
 
         player = this.physics.add.sprite(100, 300, 'girl').setScale(0.3);
 
@@ -229,10 +232,6 @@
 
         player.play('idle');
 
-        cursors = this.input.keyboard.createCursorKeys();
-
-        shoot_key = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A);
-
         ennemies = this.physics.add.group({
             key: 'flying_1_0',
             repeat: nombre_ennemies - 1,
@@ -256,6 +255,19 @@
         this.physics.add.overlap(bullets, ennemies, killEnnemies, null, this);
         this.physics.add.overlap(player, ennemies, gameover, null, this);
 
+        
+        if (this.sys.game.device.os.desktop){
+            cursors = this.input.keyboard.createCursorKeys();
+            shoot_key = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A);
+            up = cursors.up
+            left = cursors.left
+            right = cursors.right
+            shoot = shoot_key
+        }
+        else{
+            screen.lockOrientation('landscape');
+        }
+
     }
 
     function update (time)
@@ -264,7 +276,7 @@
             if (!(player.anims.currentAnim.key == 'shoot' && player.anims.isPlaying))
                 {
 
-                if (Phaser.Input.Keyboard.JustDown(shoot_key) && time > lastFired) {
+                if (Phaser.Input.Keyboard.JustDown(shoot) && time > lastFired) {
                     var bullet = bullets.get();
 
                     if (bullet){
@@ -276,16 +288,16 @@
                     
                 } else {
 
-                    if (cursors.up.isDown && player.body.touching.down) {
+                    if (up.isDown && player.body.touching.down) {
                         player.setVelocityY(-1 * vitesse_de_saut);
                         player.play('jump', true);  
 
-                    } else if (cursors.left.isDown && player.body.touching.down) {
+                    } else if (left.isDown && player.body.touching.down) {
                         
                         player.setVelocityX(-1 * vitesse_de_course);
                         player.play('run', true);
 
-                    } else if (cursors.right.isDown && player.body.touching.down) {
+                    } else if (right.isDown && player.body.touching.down) {
                             player.setVelocityX(vitesse_de_course);
                         if (player.body.velocityX < 0) {
                             player.scaleX *= -1;
@@ -296,9 +308,9 @@
                         player.setVelocityX(0);
                         player.play('idle', true);
                     } else if (!player.body.touching.down) {
-                        if (cursors.left.isDown) {
+                        if (left.isDown) {
                             player.setVelocityX(-1 * vitesse_de_course);
-                        } else if (cursors.right.isDown) {
+                        } else if (right.isDown) {
                             player.setVelocityX(vitesse_de_course);
                         }
                     }
