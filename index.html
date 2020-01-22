@@ -78,7 +78,11 @@
 
     function create ()
     {
-        if (!game.device.desktop){ game.input.onDown.add(gofull, this); }
+        /*if (!game.device.desktop){ 
+            this.buttonjump = this.add.sprite(window.innerWidth/2, 3 * window.innerHeight/4, 'replay').setScale(0.3);
+            this.buttonjump.setInteractive();
+            buttonjump = game.add.button(600, 500, 'buttonjump', null, this, 0, 1, 0, 1);
+        }*/
 
         this.bg = this.add.image(window.innerWidth / 2, window.innerHeight / 2, 'western');
         this.bg.setDisplaySize(window.innerWidth, window.innerHeight);
