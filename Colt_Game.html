@@ -61,11 +61,11 @@
         for (let i = 1; i < 11; i++) 
             this.load.image("jump" + i, "Jump(" + i + ").png");
 
-        for (let i = 1; i < 5; i++)
-            this.load.image("slide" + i, "Slide(" + i + ").png");
-
         for (let i = 1; i < 4; i++)
             this.load.image("shoot" + i, "Shoot(" + i + ").png");
+
+        for (let i = 1; i < 11; i++)
+            this.load.image("die" + i, "Dead(" + i + ").png");
 
         this.load.image('girl', 'girl.png');
 
@@ -137,7 +137,8 @@
 
         platforms = this.physics.add.staticGroup();
 
-        platforms.create(500, 800, 'ground').setScale(6).refreshBody();
+
+        platforms.create(window.innerWidth/2, 100* window.innerHeight/101, 'ground').setScale(10, 1).refreshBody();
 
         platforms.create(window.innerWidth/4, 5* window.innerHeight/7, 'ground');
         platforms.create(window.innerWidth/2, 3* window.innerHeight/7, 'ground');
@@ -145,9 +146,9 @@
 
         frames_run = []
         frames_jump = []
-        frames_slide = []
         frames_shoot = []
         frames_idle = []
+        frames_die = []
 
         frames_idle_enm = [];
 
@@ -163,14 +164,14 @@
         for (let i = 1; i < 9; i++)
             frames_run.push({key : "run" + i});
 
-        for (let i = 1; i < 5; i++) 
-            frames_slide.push({key : "slide" + i});
-
         for (let i = 1; i < 4; i++) 
             frames_shoot.push({key : "shoot" + i});
 
         for (let i = 1; i < 11; i++)
             frames_idle.push({key : "idle" + i});
+
+        for (let i = 1; i < 11; i++)
+            frames_die.push({key : "die" + i});
 
         for (let i = 0; i < 4; i++)
             frames_idle_enm.push({key : "flying_1_" + i});
@@ -182,8 +183,6 @@
             frameRate: 2,
             repeat: -1
         });
-        
-                
 
 
         this.anims.create({
@@ -208,15 +207,15 @@
         });
 
         this.anims.create({
-            key: 'slide',
-            frames: frames_slide ,
-            frameRate: 1,
-            repeat: -1
+            key: 'shoot',
+            frames: frames_shoot ,
+            frameRate: 9,
+            repeat: 0
         });
 
         this.anims.create({
-            key: 'shoot',
-            frames: frames_shoot ,
+            key: 'die',
+            frames: frames_die,
             frameRate: 9,
             repeat: 0
         });
@@ -259,60 +258,57 @@
 
     function update (time)
     {
+        if (player.anims.currentAnim.key != 'die') {
+            if (!(player.anims.currentAnim.key == 'shoot' && player.anims.isPlaying))
+                {
 
-        if (!(player.anims.currentAnim.key == 'shoot' && player.anims.isPlaying))
-            {
+                if (Phaser.Input.Keyboard.JustDown(shoot_key) && time > lastFired) {
+                    var bullet = bullets.get();
 
-            if (Phaser.Input.Keyboard.JustDown(shoot_key) && time > lastFired) {
-                var bullet = bullets.get();
-
-                if (bullet){
-                    bullet.fire(player.x, player.y);
-                    lastFired = time + 50;
-                }
-                player.setVelocityX(0);
-                player.play('shoot', true);
-                
-            } else {
-
-                if (cursors.up.isDown && player.body.touching.down) {
-                    player.setVelocityY(-1 * vitesse_de_saut);
-                    player.play('jump', true);  
-
-                } else if (cursors.left.isDown && player.body.touching.down) {
-                    
-                    player.setVelocityX(-1 * vitesse_de_course);
-                    player.play('run', true);
-
-                } else if (cursors.right.isDown && player.body.touching.down) {
-                    /*if(window.innerWidth * window.devicePixelRatio / 2 > player.x)*/
-                        player.setVelocityX(vitesse_de_course);
-                    if (player.body.velocityX < 0) {
-                        player.scaleX *= -1;
+                    if (bullet){
+                        bullet.fire(player.x, player.y);
+                        lastFired = time + 50;
                     }
-                    player.play('run', true);
-
-                } else if (cursors.down.isDown && player.body.touching.down) {
-                    player.play('slide', true);
-
-                } else if (player.body.touching.down) {
                     player.setVelocityX(0);
-                    player.play('idle', true);
-                } else if (!player.body.touching.down) {
-                    if (cursors.left.isDown) {
+                    player.play('shoot', true);
+                    
+                } else {
+
+                    if (cursors.up.isDown && player.body.touching.down) {
+                        player.setVelocityY(-1 * vitesse_de_saut);
+                        player.play('jump', true);  
+
+                    } else if (cursors.left.isDown && player.body.touching.down) {
+                        
                         player.setVelocityX(-1 * vitesse_de_course);
-                    } else if (cursors.right.isDown) {
-                        player.setVelocityX(vitesse_de_course);
+                        player.play('run', true);
+
+                    } else if (cursors.right.isDown && player.body.touching.down) {
+                            player.setVelocityX(vitesse_de_course);
+                        if (player.body.velocityX < 0) {
+                            player.scaleX *= -1;
+                        }
+                        player.play('run', true);
+
+                    }  else if (player.body.touching.down) {
+                        player.setVelocityX(0);
+                        player.play('idle', true);
+                    } else if (!player.body.touching.down) {
+                        if (cursors.left.isDown) {
+                            player.setVelocityX(-1 * vitesse_de_course);
+                        } else if (cursors.right.isDown) {
+                            player.setVelocityX(vitesse_de_course);
+                        }
                     }
+
+                    if (player.body.velocity.x > 0 && player.flipX) {
+                        player.flipX = false;
+                    } 
+                    if (player.body.velocity.x < 0 && !player.flipX) {
+                        player.flipX = true;
+                    } 
+
                 }
-
-                if (player.body.velocity.x > 0 && player.flipX) {
-                    player.flipX = false;
-                } 
-                if (player.body.velocity.x < 0 && !player.flipX) {
-                    player.flipX = true;
-                } 
-
             }
         }
 
@@ -357,6 +353,8 @@
         gameOverText.setOrigin(0.5, 0.5);
 
         this.physics.pause();
+
+        player.play('die', true);
 
         player.setTint(0xff0000);
 
